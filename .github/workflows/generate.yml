@@ -1,0 +1,83 @@
+name: Daily Threat Brief
+
+on:
+  schedule:
+    - cron: "0 14 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: daily-brief
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Generate daily brief
+        env:
+          THREAT_INTEL_API_KEY: ${{ secrets.THREAT_INTEL_API_KEY }}
+          PORTFOLIO_API_URL: https://pranithjain.qzz.io
+        run: node scripts/generate-brief.mjs
+
+      - name: Commit and push
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$DATE/"
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "brief: daily threat brief $DATE"
+            git push
+          fi
+
+  weekly:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 14 * * *' && github.event_name == 'schedule'
+    needs: generate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Generate weekly brief (Sundays only)
+        run: |
+          DAY=$(date -u +%u)
+          if [ "$DAY" = "7" ]; then
+            node scripts/generate-weekly.mjs
+          else
+            echo "Not Sunday — skipping weekly brief"
+          fi
+
+      - name: Commit and push weekly
+        run: |
+          DAY=$(date -u +%u)
+          if [ "$DAY" = "7" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add weekly/
+            if git diff --cached --quiet; then
+              echo "No changes to commit"
+            else
+              git commit -m "brief: weekly threat brief $(date -u +%Y-W%V)"
+              git push
+            fi
+          fi
