@@ -2,16 +2,17 @@
 /**
  * Generate a Daily Threat Brief from multiple threat intel sources.
  *
- * Fetches live data from:
- *   - NVD (recent critical CVEs)
- *   - CISA KEV (new additions)
- *   - Webamon DTB (campaign intelligence)
- *   - OSSF Malicious Packages (supply-chain)
- *   - pranithjain.qzz.io API (aggregated threat intel)
+ * Reads aggregated threat intel from the public data files served by
+ * pranithjain.qzz.io (no API key required):
+ *   - NVD recent critical CVEs    -> /data/threat-intel/index.json (cveIndex)
+ *   - CISA KEV new additions      -> same cveIndex (inKev / inKevSince fields)
+ *   - Webamon DTB (campaign intel)-> /data/webamon-dtb/index.json + briefs/<date>.json
+ *   - IOC families (Daily-Hunt)   -> /data/threat-intel/index.json (iocIndex)
+ * and the live OpenSSF malicious-packages feed directly for supply-chain.
  *
  * Outputs a markdown brief to ./<date>/daily-threat-brief-<date>.md
  */
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = process.cwd();
@@ -19,16 +20,12 @@ const TODAY = new Date().toISOString().slice(0, 10);
 const OUT_DIR = join(ROOT, TODAY);
 
 const PORTFOLIO_API = process.env.PORTFOLIO_API_URL || 'https://pranithjain.qzz.io';
-const API_KEY = process.env.THREAT_INTEL_API_KEY || '';
+const OSSF_API = 'https://api.github.com/repos/ossf/malicious-packages';
 
 async function fetchJson(url, opts = {}) {
   try {
     const res = await fetch(url, {
-      headers: {
-        'user-agent': 'daily-threat-brief/1.0 (+https://github.com/Pranith-Jain/daily-threat-brief)',
-        ...(API_KEY ? { 'X-API-Key': API_KEY } : {}),
-        ...opts.headers,
-      },
+      headers: { 'user-agent': 'daily-threat-brief/1.0 (+https://github.com/Pranith-Jain/daily-threat-brief)', ...opts.headers },
       signal: AbortSignal.timeout(30000),
     });
     if (!res.ok) return null;
@@ -38,56 +35,83 @@ async function fetchJson(url, opts = {}) {
   }
 }
 
-async function fetchText(url) {
-  try {
-    const res = await fetch(url, {
-      headers: { 'user-agent': 'daily-threat-brief/1.0' },
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!res.ok) return null;
-    return await res.text();
-  } catch {
-    return null;
-  }
+async function getThreatIntelIndex() {
+  return fetchJson(`${PORTFOLIO_API}/data/threat-intel/index.json`);
 }
 
 async function getCveData() {
-  const data = await fetchJson(`${PORTFOLIO_API}/api/v1/threat-intel/cves?severity=critical&limit=10`);
-  if (!data?.cves) return [];
-  return data.cves.slice(0, 10);
+  const idx = await getThreatIntelIndex();
+  if (!idx?.cveIndex) return [];
+  return idx.cveIndex.filter((c) => c.cvssV3Severity === 'critical').slice(0, 10);
 }
 
 async function getKevData() {
-  const data = await fetchJson(`${PORTFOLIO_API}/api/v1/threat-intel/kev`);
-  if (!data?.entries) return [];
-  const recent = data.entries
-    .filter((e) => e.dateAdded >= new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10))
-    .slice(0, 5);
-  return recent;
+  const idx = await getThreatIntelIndex();
+  if (!idx?.cveIndex) return [];
+  const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  return idx.cveIndex
+    .filter((c) => c.inKev && c.inKevSince >= cutoff)
+    .slice(0, 5)
+    .map((c) => ({ cveId: c.cveId, vendor: c.vendor, product: c.product, shortDescription: c.description }));
 }
 
 async function getWebamonLatest() {
-  const data = await fetchJson(`${PORTFOLIO_API}/api/v1/webamon-dtb/latest`);
-  return data;
+  const idx = await fetchJson(`${PORTFOLIO_API}/data/webamon-dtb/index.json`);
+  if (!idx?.briefs?.length) return null;
+  const latest = idx.briefs.sort((a, b) => (a.date < b.date ? -1 : 1)).at(-1);
+  return fetchJson(`${PORTFOLIO_API}/data/webamon-dtb/briefs/${latest.date}.json`);
 }
 
 async function getSupplyChain() {
-  const data = await fetchJson(`${PORTFOLIO_API}/api/v1/depx/feed?since=3d&limit=10`);
-  if (!data?.packages) return [];
-  return data.packages.slice(0, 10);
+  const ecosystems = ['npm', 'pypi', 'rubygems', 'nuget', 'cargo'];
+  const results = await Promise.allSettled(
+    ecosystems.map(async (eco) => {
+      const commits = await fetchJson(`${OSSF_API}/commits?path=osv/malicious/${eco}&per_page=20`, {
+        headers: { Accept: 'application/vnd.github.v3+json' },
+      });
+      return { eco, commits: Array.isArray(commits) ? commits : [] };
+    })
+  );
+
+  const seen = new Set();
+  const packages = [];
+  const nameOf = (msg) => {
+    const clean = (n) => (n ?? '').replace(/@\d[^\s]*$/, '').trim();
+    let m = /^Add analysis and IoCs for (\S+?)(?: \(MAL-|$)/.exec(msg);
+    if (m) return clean(m[1]);
+    m = /^Add malicious package details for (\S+?)(?: \(|$)/.exec(msg);
+    if (m) return clean(m[1]);
+    m = /^Add (\S+?)(?: — | \(|$)/.exec(msg);
+    if (m && !/^(OSV|analysis)/.test(m[1])) return clean(m[1]);
+    return null;
+  };
+
+  for (const r of results) {
+    if (r.status !== 'fulfilled') continue;
+    for (const c of r.value.commits) {
+      const msg = c?.commit?.message ?? '';
+      if (/^(Ingest|Assign|Manually|Update|Merge|Revert|Fix|Restrict|Refactor|Bump|Add OSV reports|Add README|Delete|Chore|Move)/.test(msg)) continue;
+      const name = nameOf(msg);
+      if (!name || seen.has(`${r.value.eco}/${name}`)) continue;
+      seen.add(`${r.value.eco}/${name}`);
+      packages.push({ name, ecosystem: r.value.eco, disclosedAt: c.commit.committer?.date ?? null });
+      if (packages.length >= 10) return packages;
+    }
+  }
+  return packages;
 }
 
 async function getIocFamilies() {
-  const data = await fetchJson(`${PORTFOLIO_API}/api/v1/threat-intel/iocs?limit=5`);
-  if (!data?.iocs) return [];
-  return data.iocs.slice(0, 5);
+  const idx = await getThreatIntelIndex();
+  if (!idx?.iocIndex) return [];
+  return idx.iocIndex.slice(0, 5);
 }
 
 function formatNumber(n) {
   return typeof n === 'number' ? n.toLocaleString() : String(n ?? '—');
 }
 
-function generateBrief({ cves, kev, webamon, supplyChain, iocs }) {
+function generateBrief({ cves, kev, webamon, supplyChain: supply, iocs }) {
   const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
   const dateLong = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
@@ -103,7 +127,7 @@ function generateBrief({ cves, kev, webamon, supplyChain, iocs }) {
       md += `- **${formatNumber(kpi.value)}** ${kpi.label}\n`;
     }
   }
-  md += `- **${supplyChain.length}** newly disclosed malicious packages (3 days)\n`;
+  md += `- **${supply.length}** newly disclosed malicious packages (3 days)\n`;
   md += `\n`;
 
   if (cves.length > 0) {
@@ -144,11 +168,11 @@ function generateBrief({ cves, kev, webamon, supplyChain, iocs }) {
     }
   }
 
-  if (supplyChain.length > 0) {
+  if (supply.length > 0) {
     md += `## 📦 Supply-Chain — Malicious Packages\n\n`;
     md += `| Package | Ecosystem | Disclosed |\n`;
     md += `|---------|-----------|----------|\n`;
-    for (const pkg of supplyChain) {
+    for (const pkg of supply) {
       md += `| ${pkg.name ?? pkg.package ?? '—'} | ${pkg.ecosystem ?? '—'} | ${pkg.disclosedAt?.slice(0, 10) ?? '—'} |\n`;
     }
     md += `\n`;
@@ -175,7 +199,7 @@ async function main() {
   console.log(`Daily Threat Brief — ${TODAY}`);
   console.log('Fetching data from threat intel sources...');
 
-  const [cves, kev, webamon, supplyChain, iocs] = await Promise.all([
+  const [cves, kev, webamon, supply, iocs] = await Promise.all([
     getCveData(),
     getKevData(),
     getWebamonLatest(),
@@ -183,9 +207,9 @@ async function main() {
     getIocFamilies(),
   ]);
 
-  console.log(`  CVEs: ${cves.length}, KEV: ${kev.length}, Webamon: ${webamon ? 'yes' : 'no'}, Supply-chain: ${supplyChain.length}, IOCs: ${iocs.length}`);
+  console.log(`  CVEs: ${cves.length}, KEV: ${kev.length}, Webamon: ${webamon ? 'yes' : 'no'}, Supply-chain: ${supply.length}, IOCs: ${iocs.length}`);
 
-  const md = generateBrief({ cves, kev, webamon, supplyChain, iocs });
+  const md = generateBrief({ cves, kev, webamon, supplyChain: supply, iocs });
 
   mkdirSync(OUT_DIR, { recursive: true });
   const outPath = join(OUT_DIR, `daily-threat-brief-${TODAY}.md`);

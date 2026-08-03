@@ -26,7 +26,6 @@ jobs:
 
       - name: Generate daily brief
         env:
-          THREAT_INTEL_API_KEY: ${{ secrets.THREAT_INTEL_API_KEY }}
           PORTFOLIO_API_URL: https://pranithjain.qzz.io
         run: node scripts/generate-brief.mjs
 
