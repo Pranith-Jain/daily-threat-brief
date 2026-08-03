@@ -8,11 +8,11 @@ Aggregated daily intelligence from NVD, CISA KEV, Webamon campaign sensors, OSSF
 
 - **10** critical CVEs published recently
 - **1** new CISA KEV additions (last 7 days)
-- **36** campaigns with activity
-- **2747** new malicious domains observed
-- **585** domains went offline (NXDOMAIN, double-checked)
-- **210** infrastructure changes (new IPs / ASNs / cert issuers)
-- **3** newly disclosed malicious packages (3 days)
+- **37** campaigns with activity
+- **2724** new malicious domains observed
+- **736** domains went offline (NXDOMAIN, double-checked)
+- **313** infrastructure changes (new IPs / ASNs / cert issuers)
+- **2** newly disclosed malicious packages (3 days)
 
 ## 🔴 Critical CVEs
 
@@ -35,17 +35,17 @@ Aggregated daily intelligence from NVD, CISA KEV, Webamon campaign sensors, OSSF
 
 ## 🌐 Webamon Campaign Intelligence
 
-Estate: 75 campaigns tracked · 394,740 unique domains · 84.1% online
+Estate: 75 campaigns tracked · 396,824 unique domains · 84% online
 
 ### What moved today
 
-🔺 **Fastest-growing** — [Rolling sqllq.com subdomain phishing](https://intel.webamon.com/campaigns/2f41c3bbec077af4f1c44fff61a425759f949713) added **756** new domains — active registration and rotation in progress.
+🔺 **Fastest-growing** — [Gambling Infra ASN+SSL Pair (.vip/.cc)](https://intel.webamon.com/campaigns/c89bdabcb2cb4ae583fa4c4baf6e635675e59834) added 809 new domains this window — active registration/rotation in progress.
 
-🔻 **Takedowns** — **330** domains in the same estate now resolve NXDOMAIN, with the campaign sitting at just 51% online across 91,904 domains.
+🔻 **Takedowns** — 476 domains in [Rolling sqllq.com subdomain phishing](https://intel.webamon.com/campaigns/2f41c3bbec077af4f1c44fff61a425759f949713) now resolve NXDOMAIN — takedowns/expiry confirmed by double-checked DNS.
 
-🔁 **Infra rotation** — [Chinese com.cn SEO Doorway Family (007/001 games-sports)](https://intel.webamon.com/campaigns/3a9e946c17aceec731283c6a0e2ee6d19758e2e7) moved onto **69 new IPs**, while [0149 Mark Six Lottery Nav Portal Network](https://intel.webamon.com/campaigns/cd297b7a0cb7f208666ce1210e28aab7c30898ca) shifted onto **9 new IPs across 3 new ASNs** — refresh blocklists.
+🔁 **Infra rotation** — [Chinese com.cn SEO Doorway Family (007/001 games-sports)](https://intel.webamon.com/campaigns/3a9e946c17aceec731283c6a0e2ee6d19758e2e7) moved onto 104 new IPs, and [1gom Vietnamese Betting Network](https://intel.webamon.com/campaigns/8adb665982ed95845fc76b4a3963f719f2c81b72) onto 40 — evasion or re-hosting behaviour; refresh blocklists.
 
-🎭 **Lure refresh** — [Chinese Cloaking Loader (Xitong Jiazai)](https://intel.webamon.com/campaigns/76bd6849c9cef9b4d8a305c8102ba5bcacb94e7a) deployed **1,110 new page titles** alongside 289 new domains — content templates are being cycled.
+🎭 **Lure refresh** — [Chinese Cloaking Loader (Xitong Jiazai)](https://intel.webamon.com/campaigns/76bd6849c9cef9b4d8a305c8102ba5bcacb94e7a) deployed 1,078 new page titles — content templates are being rotated.
 
 ## 📦 Supply-Chain — Malicious Packages
 
@@ -53,7 +53,6 @@ Estate: 75 campaigns tracked · 394,740 unique domains · 84.1% online
 |---------|-----------|----------|
 | @goodjavascript/dotenv | npm | 2026-08-03 |
 | @types-beta/sdk | npm | 2026-08-03 |
-| polymarket-mcp-v2 | npm | 2026-07-30 |
 
 ## 🦠 IOC Families
 
