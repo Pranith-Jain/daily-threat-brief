@@ -1,0 +1,12 @@
+name: diag
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for u in https://pranithjain.qzz.io/data/threat-intel/index.json https://pranithjain.qzz.io/data/webamon-dtb/index.json; do
+            code=$(curl -s -o /dev/null -w "%{http_code} %{content_type}" -A "daily-threat-brief/1.0" "$u")
+            echo "$u -> $code"
+          done
+          curl -s -A "daily-threat-brief/1.0" https://pranithjain.qzz.io/data/threat-intel/index.json | head -c 300
