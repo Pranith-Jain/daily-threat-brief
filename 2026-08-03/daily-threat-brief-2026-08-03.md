@@ -6,9 +6,46 @@ Aggregated daily intelligence from NVD, CISA KEV, Webamon campaign sensors, OSSF
 
 ## 📊 By the numbers
 
-- **0** critical CVEs published recently
-- **0** new CISA KEV additions (last 7 days)
+- **10** critical CVEs published recently
+- **1** new CISA KEV additions (last 7 days)
+- **36** campaigns with activity
+- **2747** new malicious domains observed
+- **585** domains went offline (NXDOMAIN, double-checked)
+- **210** infrastructure changes (new IPs / ASNs / cert issuers)
 - **3** newly disclosed malicious packages (3 days)
+
+## 🔴 Critical CVEs
+
+| CVE | Vendor | Product | CVSS | KEV |
+|-----|--------|---------|------|-----|
+| CVE-2026-35616 | Fortinet | FortiClient EMS | 9.8 | ⚠️ Yes |
+| CVE-2026-0770 | Langflow | Langflow | 9.8 | ⚠️ Yes |
+| CVE-2026-42298 | — | — | 10 | No |
+| CVE-2026-42601 | — | — | 9.8 | No |
+| CVE-2026-42257 | — | — | 9.8 | No |
+| CVE-2026-42454 | — | — | 9.9 | No |
+| CVE-2026-42302 | — | — | 9.8 | No |
+| CVE-2026-8091 | — | — | 9.8 | No |
+| CVE-2026-28780 | — | — | 9.8 | No |
+| CVE-2026-35579 | — | — | 9.8 | No |
+
+## ⚠️ CISA KEV — New Additions
+
+- **CVE-2025-68686** — Fortinet FortiOS: An Exposure of Sensitive Information to an Unauthorized Actor vulnerability [CWE-200] vulnerability in Fortinet FortiOS 7.6.0 through 7.6.1, FortiOS 7.4.0 through 7.4.6, FortiOS 7.2 all versions, FortiOS 7.0 all versions, FortiOS 6.4 all… (due: TBD)
+
+## 🌐 Webamon Campaign Intelligence
+
+Estate: 75 campaigns tracked · 394,740 unique domains · 84.1% online
+
+### What moved today
+
+🔺 **Fastest-growing** — [Rolling sqllq.com subdomain phishing](https://intel.webamon.com/campaigns/2f41c3bbec077af4f1c44fff61a425759f949713) added **756** new domains — active registration and rotation in progress.
+
+🔻 **Takedowns** — **330** domains in the same estate now resolve NXDOMAIN, with the campaign sitting at just 51% online across 91,904 domains.
+
+🔁 **Infra rotation** — [Chinese com.cn SEO Doorway Family (007/001 games-sports)](https://intel.webamon.com/campaigns/3a9e946c17aceec731283c6a0e2ee6d19758e2e7) moved onto **69 new IPs**, while [0149 Mark Six Lottery Nav Portal Network](https://intel.webamon.com/campaigns/cd297b7a0cb7f208666ce1210e28aab7c30898ca) shifted onto **9 new IPs across 3 new ASNs** — refresh blocklists.
+
+🎭 **Lure refresh** — [Chinese Cloaking Loader (Xitong Jiazai)](https://intel.webamon.com/campaigns/76bd6849c9cef9b4d8a305c8102ba5bcacb94e7a) deployed **1,110 new page titles** alongside 289 new domains — content templates are being cycled.
 
 ## 📦 Supply-Chain — Malicious Packages
 
@@ -17,6 +54,14 @@ Aggregated daily intelligence from NVD, CISA KEV, Webamon campaign sensors, OSSF
 | @goodjavascript/dotenv | npm | 2026-08-03 |
 | @types-beta/sdk | npm | 2026-08-03 |
 | polymarket-mcp-v2 | npm | 2026-07-30 |
+
+## 🦠 IOC Families
+
+- **0APT Ransomware** (ransomware) — 20 indicators
+- **AiLock Ransomware** (ransomware) — 41 indicators
+- **Akira Ransomware** (ransomware) — 598 indicators
+- **Anubis Backdoor** (malware) — 29 indicators
+- **Anubis Ransomware** (ransomware) — 4 indicators
 
 ---
 
