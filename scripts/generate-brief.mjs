@@ -2,12 +2,13 @@
 /**
  * Generate a Daily Threat Brief from multiple threat intel sources.
  *
- * Reads aggregated threat intel from the public data files served by
- * pranithjain.qzz.io (no API key required):
- *   - NVD recent critical CVEs    -> /data/threat-intel/index.json (cveIndex)
+ * Reads aggregated threat intel from the public data files committed to the
+ * Pranith-Jain.github.io repo (raw.githubusercontent.com — GitHub Actions
+ * runners get 403 from Cloudflare for the qzz.io site, so we avoid it):
+ *   - NVD recent critical CVEs    -> data/threat-intel/index.json (cveIndex)
  *   - CISA KEV new additions      -> same cveIndex (inKev / inKevSince fields)
- *   - Webamon DTB (campaign intel)-> /data/webamon-dtb/index.json + briefs/<date>.json
- *   - IOC families (Daily-Hunt)   -> /data/threat-intel/index.json (iocIndex)
+ *   - Webamon DTB (campaign intel)-> data/webamon-dtb/index.json + briefs/<date>.json
+ *   - IOC families (Daily-Hunt)   -> data/threat-intel/index.json (iocIndex)
  * and the live OpenSSF malicious-packages feed directly for supply-chain.
  *
  * Outputs a markdown brief to ./<date>/daily-threat-brief-<date>.md
@@ -19,7 +20,7 @@ const ROOT = process.cwd();
 const TODAY = new Date().toISOString().slice(0, 10);
 const OUT_DIR = join(ROOT, TODAY);
 
-const PORTFOLIO_API = process.env.PORTFOLIO_API_URL || 'https://pranithjain.qzz.io';
+const DATA_BASE = process.env.DATA_SOURCE_URL || 'https://raw.githubusercontent.com/Pranith-Jain/Pranith-Jain.github.io/main/public/data';
 const OSSF_API = 'https://api.github.com/repos/ossf/malicious-packages';
 
 async function fetchJson(url, opts = {}) {
@@ -36,7 +37,7 @@ async function fetchJson(url, opts = {}) {
 }
 
 async function getThreatIntelIndex() {
-  return fetchJson(`${PORTFOLIO_API}/data/threat-intel/index.json`);
+  return fetchJson(`${DATA_BASE}/threat-intel/index.json`);
 }
 
 async function getCveData() {
@@ -56,10 +57,10 @@ async function getKevData() {
 }
 
 async function getWebamonLatest() {
-  const idx = await fetchJson(`${PORTFOLIO_API}/data/webamon-dtb/index.json`);
+  const idx = await fetchJson(`${DATA_BASE}/webamon-dtb/index.json`);
   if (!idx?.briefs?.length) return null;
   const latest = idx.briefs.sort((a, b) => (a.date < b.date ? -1 : 1)).at(-1);
-  return fetchJson(`${PORTFOLIO_API}/data/webamon-dtb/briefs/${latest.date}.json`);
+  return fetchJson(`${DATA_BASE}/webamon-dtb/briefs/${latest.date}.json`);
 }
 
 async function getSupplyChain() {

@@ -25,8 +25,6 @@ jobs:
           node-version: "22"
 
       - name: Generate daily brief
-        env:
-          PORTFOLIO_API_URL: https://pranithjain.qzz.io
         run: node scripts/generate-brief.mjs
 
       - name: Commit and push
