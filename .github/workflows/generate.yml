@@ -1,8 +1,10 @@
 name: Daily Threat Brief
 
+# DISABLED 2026-11-16: briefs are now mirrored from
+# Pranith-Jain/dfir-threat-intel-platform's briefings/ folder by that repo's
+# briefings-to-github.yml workflow. Running this generator would create
+# divergent content. It is kept for reference / manual dispatch only.
 on:
-  schedule:
-    - cron: "0 14 * * *"
   workflow_dispatch: {}
 
 concurrency:
